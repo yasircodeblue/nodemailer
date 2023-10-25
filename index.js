@@ -26,7 +26,7 @@ app.post('/sendmail', async (req, res) => {
         console.log(transporter);
         const mailOptions = {
             from: email, // Use the sender's email from req.body
-            to: 'yasir.codeblue@gmail.com', // replace with your email
+            to: process.env.SEND_TO, // replace with your email
             subject: subject,
             html: `<h1>Hello From ${name},</h1>
             <p>Sender Email: ${email}</p> 
