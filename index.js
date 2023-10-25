@@ -1,65 +1,55 @@
 const express = require('express');
-const app = express();
-const cors = require('cors');
 const nodemailer = require('nodemailer');
-require('dotenv').config()
-app.use(express.json());
-app.use(cors());
 
-app.get('/', (req, res) => {
-    res.send('API is running');
+const app = express();
+const port = 3001;
+
+// Enable CORS for all routes
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  next();
 });
 
+// Body parser middleware
+app.use(express.json());
+
+// Email sending logic
 app.post('/sendmail', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Credentials', true)
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    // another common pattern
-    // res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    )
+  try {
     const { name, email, subject, message } = req.body;
 
-    try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.PASS,
+    // Configure nodemailer with your email service provider
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL,
+                pass: process.env.PASS, // Your email password or app-specific password
+      },
+    });
 
-            },
+    // Email options
+    const mailOptions = {
+      from: email,
+       to: process.env.SEND_TO, // Recipient email address
+      subject: subject,
+      text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
+    };
 
-        });
-        console.log(transporter);
-        const mailOptions = {
-            from: email, // Use the sender's email from req.body
-            to: process.env.SEND_TO, // replace with your email
-            subject: subject,
-            html: `<h1>Hello From ${name},</h1>
-            <p>Sender Email: ${email}</p> 
-            <p>Subject: ${subject}</p>
-            <p>Sender Message: ${message}</p> 
-            `,
-        };
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error sending email:', error);
-                res.status(500).json({ status: 500, error: 'Failed to send email. Please try again.' });
-            } else {
-                console.log('Email sent:', info.response);
-                res.status(200).json({ status: 200, message: 'Email sent successfully!' });
-            }
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ status: 500, error: 'Internal server error.' });
-    }
+    console.log('Email sent: ' + info.response);
+
+    res.json({ success: true, message: 'Email sent successfully!' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ success: false, message: 'Failed to send email.' });
+  }
 });
 
-const port = 8000;
 app.listen(port, () => {
-    console.log(`Connected on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
